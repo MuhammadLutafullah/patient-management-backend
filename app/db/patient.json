@@ -1,0 +1,42 @@
+{
+    "P001": {
+        "name": "Saif bhai",
+        "city": "cake",
+        "age": 100,
+        "gender": "other",
+        "height": 0.5,
+        "weight": 200.0,
+        "bmi": 800.0,
+        "weight_category": "obese"
+    },
+    "P002": {
+        "name": "Ravi Mehta",
+        "city": "Mumbai",
+        "age": 35,
+        "gender": "male",
+        "height": 1.75,
+        "weight": 85,
+        "bmi": 27.76,
+        "weight_category": "Overweight"
+    },
+    "P003": {
+        "name": "Sneha Kulkarni",
+        "city": "Pune",
+        "age": 22,
+        "gender": "female",
+        "height": 1.6,
+        "weight": 45,
+        "bmi": 17.58,
+        "weight_category": "Underweight"
+    },
+    "P004": {
+        "name": "Ahmad",
+        "city": "Lahore",
+        "age": 18,
+        "gender": "male",
+        "height": 1.72,
+        "weight": 22.0,
+        "bmi": 7.44,
+        "weight_category": "Underweight"
+    }
+}
