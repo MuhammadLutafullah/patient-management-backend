@@ -1,96 +1,128 @@
-import json
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
 from app.schemas.patient_schema import Patient, PatientUpdate
-from app.core.config import DB_PATH
+from app.db.models import PatientDB
 
 
-# -------------------------
-# DB Helpers
-# -------------------------
-def load_data():
-    with open(DB_PATH, "r") as f:
-        return json.load(f)
+def get_all_patients(db: Session):
+    return db.query(PatientDB).all()
 
 
-def save_data(data):
-    with open(DB_PATH, "w") as f:
-        json.dump(data, f, indent=4)
+def get_patient(patient_id: int, db: Session):
+    patient = db.query(PatientDB).filter(
+        PatientDB.id == patient_id
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+
+    return patient
 
 
-# -------------------------
-# Service Functions
-# -------------------------
-def get_all_patients():
-    return load_data()
+def create_patient(patient: Patient, db: Session):
+
+    new_patient = PatientDB(
+        name=patient.name,
+        city=patient.city,
+        age=patient.age,
+        gender=patient.gender,
+        height=patient.height,
+        weight=patient.weight,
+        bmi=patient.bmi,
+        weight_category=patient.weight_category
+    )
+
+    db.add(new_patient)
+    db.commit()
+    db.refresh(new_patient)
+
+    return {
+        "message": "Patient Created Successfully",
+        "patient_id": new_patient.id
+    }
 
 
-def get_patient(patient_id: str):
-    data = load_data()
-    if patient_id not in data:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return data[patient_id]
+def update_patient(patient_id: int, res: PatientUpdate, db: Session):
 
+    patient = db.query(PatientDB).filter(
+        PatientDB.id == patient_id
+    ).first()
 
-def create_patient(patient: Patient):
-    data = load_data()
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
 
-    if patient.id in data:
-        raise HTTPException(status_code=400, detail="Patient already exists")
-
-    data[patient.id] = patient.model_dump(exclude=["id"])
-    save_data(data)
-
-    return {"message": "Patient Created Successfully"}
-
-
-def update_patient(patient_id: str, res: PatientUpdate):
-    data = load_data()
-
-    if patient_id not in data:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    existing = data[patient_id]
     updates = res.model_dump(exclude_unset=True)
 
-    for k, v in updates.items():
-        existing[k] = v
+    for key, value in updates.items():
+        setattr(patient, key, value)
 
-    # rebuild object to recalculate computed fields
-    patient_obj = Patient(id=patient_id, **existing)
-    data[patient_id] = patient_obj.model_dump(exclude=["id"])
+    bmi = round(
+        patient.weight / (patient.height ** 2),
+        2
+    )
 
-    save_data(data)
+    if bmi < 18.5:
+        category = "Underweight"
+    elif bmi < 25:
+        category = "Normal"
+    elif bmi < 30:
+        category = "Overweight"
+    else:
+        category = "Obese"
+
+    patient.bmi = bmi
+    patient.weight_category = category
+
+    db.commit()
 
     return {"message": "Patient Updated Successfully"}
 
 
-def delete_patient(patient_id: str):
-    data = load_data()
+def delete_patient(patient_id: int, db: Session):
 
-    if patient_id not in data:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient = db.query(PatientDB).filter(
+        PatientDB.id == patient_id
+    ).first()
 
-    del data[patient_id]
-    save_data(data)
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+
+    db.delete(patient)
+    db.commit()
 
     return {"message": "Patient Deleted Successfully"}
 
 
-def sort_patients(sort_by: str, order: str):
+def sort_patients(sort_by: str, order: str, db: Session):
+
     valid_sort = ["height", "weight", "bmi"]
     valid_order = ["asc", "desc"]
 
     if sort_by not in valid_sort:
-        raise HTTPException(status_code=400, detail="Invalid sort field")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid sort field"
+        )
 
     if order not in valid_order:
-        raise HTTPException(status_code=400, detail="Invalid order")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid order"
+        )
 
-    data = load_data()
-    reverse = order == "desc"
+    column = getattr(PatientDB, sort_by)
 
-    return sorted(
-        data.values(),
-        key=lambda x: x.get(sort_by, 0),
-        reverse=reverse
-    )
+    if order == "asc":
+        return db.query(PatientDB).order_by(column.asc()).all()
+
+    return db.query(PatientDB).order_by(column.desc()).all()

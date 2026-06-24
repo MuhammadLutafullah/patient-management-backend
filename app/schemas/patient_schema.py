@@ -3,7 +3,6 @@ from typing import Literal, Optional
 
 
 class Patient(BaseModel):
-    id: str = Field(..., description="Patient ID")
     name: str = Field(..., max_length=21)
     city: str
     age: int
