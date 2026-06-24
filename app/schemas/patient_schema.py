@@ -1,37 +1,39 @@
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field
 from typing import Literal, Optional
 
 
 class Patient(BaseModel):
     name: str = Field(..., max_length=21)
-    city: str
+
+    # Foreign key from cities table
+    city_id: int
+
     age: int
+
     gender: Literal["male", "female", "other"]
+
     height: float = Field(..., gt=0)
+
+    height_unit: Literal["cm", "inch", "feet"]
+
     weight: float = Field(..., gt=0)
 
-    @computed_field
-    @property
-    def bmi(self) -> float:
-        return round(self.weight / (self.height ** 2), 2)
-
-    @computed_field
-    @property
-    def weight_category(self) -> str:
-        if self.bmi < 18.5:
-            return "Underweight"
-        elif self.bmi < 25:
-            return "Normal"
-        elif self.bmi < 30:
-            return "Overweight"
-        else:
-            return "Obese"
+    weight_unit: Literal["kg", "lbs"]
 
 
 class PatientUpdate(BaseModel):
     name: Optional[str] = None
-    city: Optional[str] = None
+
+    city_id: Optional[int] = None
+
     age: Optional[int] = None
+
     gender: Optional[Literal["male", "female", "other"]] = None
+
     height: Optional[float] = Field(default=None, gt=0)
+
+    height_unit: Optional[Literal["cm", "inch", "feet"]] = None
+
     weight: Optional[float] = Field(default=None, gt=0)
+
+    weight_unit: Optional[Literal["kg", "lbs"]] = None
